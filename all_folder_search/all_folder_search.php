@@ -24,8 +24,7 @@ class all_folder_search extends rcube_plugin
         $this->add_hook('search_override', array($this, 'search_override'));
         $this->add_hook('list_override', array($this, 'list_override'));
         $this->add_hook('mark_override', array($this, 'mark_override'));
-        // broken
-        $this->add_hook('mov_del_override', array($this, 'mov_del_override'));
+        //$this->add_hook('mov_del_override', array($this, 'mov_del_override'));
         $this->add_hook('startup', array($this, 'startup'));
 
         $this->include_script('client.js');
