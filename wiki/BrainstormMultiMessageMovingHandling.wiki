@@ -1,0 +1,9 @@
+#summary Brainstorm on how to handle the moving of multiple messages.
+
+= Introduction =
+
+The logic on how roundcube should react to the selection and moving of multiple messages that span multiple mailboxes is unclear.
+
+= Details =
+
+None yet.
