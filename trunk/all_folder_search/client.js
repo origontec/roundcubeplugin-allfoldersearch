@@ -39,17 +39,21 @@ if (window.rcmail) {
 
         if(rcmail.env.all_folder_search_active)
         {
+            rcmail.message_list.draggable = false;
+            
             if(evt.list.selection.length == 1)
             {
                 rcmail.select_folder(rcmail.env.all_folder_search_uid_mboxes[evt.list.selection[0]], rcmail.env.mailbox);
                 rcmail.env.mailbox = rcmail.env.all_folder_search_uid_mboxes[evt.list.selection[0]];
-                rcmail.message_list.draggable = true;
+                //rcmail.message_list.draggable = true;
             }
             else
             {
-                rcmail.message_list.draggable = false;
+                //rcmail.message_list.draggable = false;
             }
         }
+        else
+            rcmail.message_list.draggable = true;
 
     });
 
