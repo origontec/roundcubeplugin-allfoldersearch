@@ -6,12 +6,11 @@
  * Add the option to search all imap folders
  *
  * Known limitations:
- *   - dragging while multiple messages are selected is disabled
- *       x logic at this point is debatable
+ *   - no message dragging or deleting allowed while in an all folder search
  *   - viewing a message then going back to the message list
  *       x message list doesnt exist at this point so its not as easy as calling the plugin's list function
  *
- * @version 0.5
+ * @version 0.6
  * @author Ryan Ostrander
  */
 
@@ -24,7 +23,7 @@ class all_folder_search extends rcube_plugin
         $this->add_hook('search_override', array($this, 'search_override'));
         $this->add_hook('list_override', array($this, 'list_override'));
         $this->add_hook('mark_override', array($this, 'mark_override'));
-        //$this->add_hook('mov_del_override', array($this, 'mov_del_override'));
+        $this->add_hook('mov_del_override', array($this, 'mov_del_override'));
         $this->add_hook('startup', array($this, 'startup'));
 
         $this->include_script('client.js');
@@ -40,10 +39,18 @@ class all_folder_search extends rcube_plugin
      */
     function startup($args)
     {
-        // if action is empty then the page has been refreshed
-        if(!$args['action'])
-            $_SESSION['all_folder_search']['uid_mboxes'] = 0;
-
+        if($args['get']['_search'] == 'ALLFOLDERSSEARCHREQ')
+        {
+            if($args['action'] == 'show' || $args['action'] == 'preview')
+                $args['get']['_uid'] = $_SESSION['all_folder_search']['uid_mboxes'][$args['get']['_uid']]['uid'];
+        }
+        else if($_SESSION['all_folder_search']['uid_mboxes'])
+        {
+            // if action is empty then the page has been refreshed
+            if(!$args['action'])
+                $_SESSION['all_folder_search']['uid_mboxes'] = 0;
+        }
+        
         return $args;
     }
 
@@ -197,7 +204,7 @@ class all_folder_search extends rcube_plugin
         //   cant check using session here because not_all_folder_search
         //   is called at the same time
         if(get_input_value('_search', RCUBE_INPUT_GET) != 'ALLFOLDERSSEARCHREQ')
-        {   console("yo");
+        {
             // use roundcube's list.inc
             $args['abort'] = false;
         }
@@ -275,9 +282,9 @@ class all_folder_search extends rcube_plugin
             // mark each uid individually because the mailboxes may differ
             foreach($uids as $uid)
             {
-                $mbox = $_SESSION['all_folder_search']['uid_mboxes'][$uid];
+                $mbox = $_SESSION['all_folder_search']['uid_mboxes'][$uid]['mbox'];
                 $IMAP->set_mailbox($mbox);
-                $marked = $IMAP->set_flag($uid, $flag);
+                $marked = $IMAP->set_flag($_SESSION['all_folder_search']['uid_mboxes'][$uid]['uid'], $flag);
 
                 if ($marked == -1)
                 {
@@ -298,9 +305,9 @@ class all_folder_search extends rcube_plugin
 
                 foreach($uids as $uid)
                 {
-                    $mbox = $_SESSION['all_folder_search']['uid_mboxes'][$uid];
+                    $mbox = $_SESSION['all_folder_search']['uid_mboxes'][$uid]['mbox'];
                     $IMAP->set_mailbox($mbox);
-                    $read = $IMAP->set_flag($uid, 'SEEN');
+                    $read = $IMAP->set_flag($_SESSION['all_folder_search']['uid_mboxes'][$uid]['uid'], 'SEEN');
 
                     if ($read != -1 && !$CONFIG['skip_deleted'])
                         $OUTPUT->command('flag_deleted_as_read', $uid);
@@ -309,7 +316,8 @@ class all_folder_search extends rcube_plugin
 
             if ($flag == 'SEEN' || $flag == 'UNSEEN' || ($flag == 'DELETED' && !$CONFIG['skip_deleted']))
             {
-                $mbox_names = array_unique($_SESSION['all_folder_search']['uid_mboxes']);
+                // just update unread count for all mailboxes, easier than figuring out which were changed
+                $mbox_names = $IMAP->list_mailboxes();
 
                 foreach($mbox_names as $mbox)
                     $OUTPUT->command('set_unread_count', $mbox, $IMAP->messagecount($mbox, 'UNSEEN'), ($mbox == 'INBOX'));
@@ -402,20 +410,17 @@ class all_folder_search extends rcube_plugin
             // count messages before changing anything
             //$old_count = $IMAP->messagecount();
             //$old_pages = ceil($old_count / $IMAP->page_size);
-console("mov del 1:".$RCMAIL->action. " 2:".$_POST['_uid']. " 3:".$_POST['_target_mbox']);
             // move messages
             if (!empty($_POST['_uid']) && !empty($_POST['_target_mbox']))
             {
-console("mov del if");
                 $count = sizeof(explode(',', ($uids = get_input_value('_uid', RCUBE_INPUT_POST))));
                 $target = get_input_value('_target_mbox', RCUBE_INPUT_POST);
-                $mbox = get_input_value('_mbox', RCUBE_INPUT_POST);
+                $mbox = $_SESSION['all_folder_search']['uid_mboxes'][$uids[0]];
                 $IMAP->set_mailbox($mbox);
-console("mov del $mbox to $target # $count");
-console(print_r($uids, true));
+
                 // flag messages as read before moving them
                 if ($CONFIG['read_when_deleted'] && $target == $CONFIG['trash_mbox'])
-                $IMAP->set_flag($uids, 'SEEN');
+                    $IMAP->set_flag($uids, 'SEEN');
 
 console("moving $uids from $mbox to $target");
                 $moved = $IMAP->move_message($uids, $target, $mbox);
@@ -428,6 +433,8 @@ console("moving $uids from $mbox to $target");
                     $OUTPUT->send();
                     exit;
                 }
+                else
+                    $OUTPUT->show_message("Successfully moved message from $mbox to $target");
 
                 $addrows = true;
             }
@@ -466,7 +473,8 @@ console("moving $uids from $mbox to $target");
         global $IMAP, $OUTPUT;
         $result_h = Array();
         $uid_mboxes = Array();
-
+        $id = 1;
+        
         // Search all folders and build a final set
         foreach($IMAP->list_mailboxes() as $mbox)
         {
@@ -476,8 +484,12 @@ console("moving $uids from $mbox to $target");
 
             foreach($result as $row)
             {
+                $uid_mboxes[$id] = array('uid' => $row->uid, 'mbox' => $mbox);
+                
+                $row->uid = $id;
                 $result_h[] = $row;
-                $uid_mboxes[$row->uid] = $mbox;
+                
+                $id++;
             }
         }
 
@@ -496,10 +508,20 @@ console("moving $uids from $mbox to $target");
     function get_search_result()
     {
         global $IMAP;
-        $result_h = Array();
+        $result_h = array();
 
-        foreach($_SESSION['all_folder_search']['uid_mboxes'] as $uid => $mbox)
-            $result_h[] = $IMAP->get_headers($uid, $mbox);
+        foreach($_SESSION['all_folder_search']['uid_mboxes'] as $id => $uid_mbox)
+        {
+            $uid = $uid_mbox['uid'];
+            $mbox = $uid_mbox['mbox'];
+            
+            // get the message headers directly, there is a caching issue with the imap wrapper
+            //$IMAP->get_headers($uid, $mbox);
+            $row = iil_C_FetchHeader($IMAP->conn, $mbox, $uid, TRUE, FALSE, $IMAP->fetch_add_headers);
+            $row->uid = $id;
+
+            array_push($result_h, $row);
+        }
 
         return $result_h;
     }
