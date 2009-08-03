@@ -1,3 +1,9 @@
+/* notes
+ * 
+ * if select next becomes a problem just replace the prototype in list.js
+ *
+ */
+
 if (window.rcmail) {
 
     rcmail.addEventListener('init', function(evt) {
@@ -39,18 +45,14 @@ if (window.rcmail) {
 
         if(rcmail.env.all_folder_search_active)
         {
-            rcmail.message_list.draggable = false;
-            
             if(evt.list.selection.length == 1)
             {
-                rcmail.select_folder(rcmail.env.all_folder_search_uid_mboxes[evt.list.selection[0]], rcmail.env.mailbox);
-                rcmail.env.mailbox = rcmail.env.all_folder_search_uid_mboxes[evt.list.selection[0]];
-                //rcmail.message_list.draggable = true;
+                var mbox = rcmail.env.all_folder_search_uid_mboxes[evt.list.selection[0]].mbox;
+                rcmail.select_folder(mbox, rcmail.env.mailbox);
+                rcmail.env.mailbox = mbox;
             }
-            else
-            {
-                //rcmail.message_list.draggable = false;
-            }
+            
+            rcmail.message_list.draggable = false;
         }
         else
             rcmail.message_list.draggable = true;
