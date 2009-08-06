@@ -568,11 +568,11 @@ console("moving $uids from $mbox to $target");
                 case 'size':    $first = $result_h[$x]->size;
                                 $second = $result_h[$y]->size;
                                 break;
-                case 'subject': $first = $result_h[$x]->subject;
-                                $second = $result_h[$y]->subject;
+                case 'subject': $first = strtolower($result_h[$x]->subject);
+                                $second = strtolower($result_h[$y]->subject);
                                 break;
-                case 'from':    $first = $result_h[$x]->from;
-                                $second = $result_h[$y]->from;
+                case 'from':    $first = strtolower($result_h[$x]->from);
+                                $second = strtolower($result_h[$y]->from);
                                 break;
                 }
 
