@@ -1,5 +1,5 @@
 /* notes
- * 
+ *
  * if select next becomes a problem just replace the prototype in list.js
  *
  */
@@ -51,7 +51,7 @@ if (window.rcmail) {
                 rcmail.select_folder(mbox, rcmail.env.mailbox);
                 rcmail.env.mailbox = mbox;
             }
-            
+
             rcmail.message_list.draggable = false;
         }
         else

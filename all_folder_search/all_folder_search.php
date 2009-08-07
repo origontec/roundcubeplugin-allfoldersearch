@@ -50,7 +50,7 @@ class all_folder_search extends rcube_plugin
             if(!$args['action'])
                 $_SESSION['all_folder_search']['uid_mboxes'] = 0;
         }
-        
+
         return $args;
     }
 
@@ -474,7 +474,7 @@ console("moving $uids from $mbox to $target");
         $result_h = Array();
         $uid_mboxes = Array();
         $id = 1;
-        
+
         // Search all folders and build a final set
         foreach($IMAP->list_mailboxes() as $mbox)
         {
@@ -485,10 +485,10 @@ console("moving $uids from $mbox to $target");
             foreach($result as $row)
             {
                 $uid_mboxes[$id] = array('uid' => $row->uid, 'mbox' => $mbox);
-                
+
                 $row->uid = $id;
                 $result_h[] = $row;
-                
+
                 $id++;
             }
         }
@@ -514,7 +514,7 @@ console("moving $uids from $mbox to $target");
         {
             $uid = $uid_mbox['uid'];
             $mbox = $uid_mbox['mbox'];
-            
+
             // get the message headers directly, there is a caching issue with the imap wrapper
             //$IMAP->get_headers($uid, $mbox);
             $row = iil_C_FetchHeader($IMAP->conn, $mbox, $uid, TRUE, FALSE, $IMAP->fetch_add_headers);
