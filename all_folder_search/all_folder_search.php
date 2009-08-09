@@ -149,7 +149,6 @@ class all_folder_search extends rcube_plugin
             $result_h = Array();
             $tmp_page_size = $IMAP->page_size;
             $IMAP->page_size = 500;
-            $mboxes = $IMAP->list_mailboxes();
 
             if($use_saved_list && $_SESSION['all_folder_search']['uid_mboxes'])
                 $result_h = $this->get_search_result();
@@ -478,6 +477,10 @@ console("moving $uids from $mbox to $target");
         // Search all folders and build a final set
         foreach($IMAP->list_mailboxes() as $mbox)
         {
+            // dont include junk or trash in the all folder search results
+            if($mbox == $CONFIG['junk_mbox'] || $mbox == $CONFIG['trash_mbox'])
+                continue;
+
             $IMAP->set_mailbox($mbox);
             $IMAP->search($mbox, $search_string, RCMAIL_CHARSET, $_SESSION['sort_col']);
             $result = $IMAP->list_headers($mbox, 1, $_SESSION['sort_col'], $_SESSION['sort_order']);
